@@ -1,57 +1,70 @@
-const subjectElements = $('.DersInfoBar')
-
-const OVERWROTEN_SUBJECTS = ['YABANCI DİL I (ALMANCA) (YAD111) ']
-const POINT_VALUES = {
-    AA: 4.0, 
-    BA: 3.5, 
-    BB: 3.0, 
-    CB: 2.5, 
-    CC: 2.0, 
-    DC: 1.5,
-    DD: 1.0, 
-    FD: 0.5, 
-    FF: 0.0
+const GRADE_VALUE_MAP = {
+    "AA": 4,
+    "BA": 3.5,
+    "BB": 3,
+    "CB": 2.5,
+    "CC": 2,
+    "DC": 1.5,
+    "DD": 1,
+    "FD": 0.5,
+    "FF": 0,
 }
 
-const formatName = (elName) => $(name).text()
-const formatCredit = (elCredit) => $(credit).text().split(' ')[1].split('.')[0]
-const formatPoint = (elPoint) => POINT_VALUES[$(point).text().split(' ')[0]]
+const rows = document.querySelectorAll('#DersGecmis tr.line1, tr.line2');
+let subjects = Array.from(rows).map((row) => {
+    const [, code, name, , , , , credits, grade, , description] = row.querySelector('table tr').children;
 
-const getSubjectArray = () => {
-    let subjects = []
-    subjectElements.each((idx, subjectElement) => {
-        const [name, credits, credit, point] = subjectElement.children
-    
-        const valName = formatName(name)
-        const valCredit = formatCredit(credit)
-        const valPoint = formatPoint(point)
-    
-        if (OVERWROTEN_SUBJECTS.includes(valname))
-            return
-    
-        const newSubject = {
-            name: valName,
-            credit: valCredit,
-            point: valPoint
-        }
-    
-        const existingSubject = subjects.find(el => el.name === valName)
-        if (existingSubject) {
-            subjects = subjects.map(subject => {
-              if (subject.name === valName) 
-                return {...subject, point: newSubject.point}
-              return subject
-            })
-        }
-        else subjects.push(newSubject)
-    })
+    return {
+        code: code.innerText,
+        name: name.innerText,
+        credits: +credits.innerText,
+        grade: grade.innerText,
+        gradeValue: GRADE_VALUE_MAP[grade.innerText] * +credits.innerText,
+        description: description.innerText,
+    }
+})
 
-    return subjects
-}
+// Hardcoded pending subject
+subjects.push({
+    code: "BMB4020",
+    name: "GENOMİK HESAPLAMA",
+    credits: 5,
+    grade: "AA",
+    gradeValue: 0,
+    description: "Mükemmel",
+})
 
-const printSubjects = subjects => {
-    subjects.forEach(subject => console.log(`${subject.name} ${subject.credit} ${subject.point}`))
-}
+let subjectsMap = new Map();
+subjects.forEach((subject) => subjectsMap.set(subject.code, subject));
 
-const subjects = getSubjectArray()
-printSubjects(subjects)
+// const filteredSubjects = subjects.filter((s) => s.grade !== "FF" && s.grade !== "G");
+const filteredSubjects = Array.from(subjectsMap.values()).filter((s) => s.grade !== "FF" && s.grade !== "G");
+
+const creditsSum = filteredSubjects.map((subject) => subject.credits).reduce((acc, value) => acc + value, 0)
+const gradeValuesSum = filteredSubjects.map((subject) => subject.gradeValue).reduce((acc, value) => acc + value, 0)
+
+const GPA = gradeValuesSum / creditsSum;
+console.log({
+    GPA,
+    creditsSum,
+    gradeValuesSum,
+});
+
+filteredSubjects.push({
+    code: "GPA",
+    name: GPA,
+    credits: "",
+    grade: "",
+    gradeValue: "",
+    description: "",
+})
+
+const jsonString = `data:text/json;chatset=utf-8,${encodeURIComponent(
+  JSON.stringify(filteredSubjects)
+)}`;
+
+const link = document.createElement("a");
+link.href = jsonString;
+link.download = "filtered-grades.json";
+
+link.click();
